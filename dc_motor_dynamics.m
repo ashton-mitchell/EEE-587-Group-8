@@ -5,49 +5,69 @@ Ke = 0.01; % Electromotive Force Constant
 Km = 0.01; % Torque-current ratio
 J = 0.01; % Moment of Inertia of the Rotor
 Kd = 0.1; % Damping Ratio of the Inertia of the Rotor
+R = 1; % Resistance
+L = 0.25; % Inductance
 
 % values to sweep
-R_values = [1, 1.1, 1.2];
-L_values = [0.05, 0.25, 0.5];
-colors = lines(numel(L_values)); % colors for different L values
-figure
+V_values = [1 1.2 1.5];
+colors = lines(numel(V_values));
 
-for iR = 1:numel(R_values)
-    R = R_values(iR);
-    subplot(1,3,iR); hold on
-    legendEntries = cell(numel(L_values),1);
+A = [-R/L -Ke/L
+     Km/J -Kd/J];
+B = [1/L; 0];
+C = [0 1];
+D = 0;
 
-    for iL = 1:numel(L_values)
-        L = L_values(iL);
-        % state-space matrices
-        A = [-R/L -Ke/L;
-        Km/J -Kd/J];
-        B = [1/L; 0];
-        C = [0 1];
-        D = 0;
-        sys_ss = ss(A,B,C,D);
-        % compute step response data (5 seconds)
-        [y,t] = step(sys_ss,5);
-        % plot step response
-        plot(t, squeeze(y), ...
-        'Color', colors(iL,:), ...
-        'LineWidth', 1.5);
-        legendEntries{iL} = sprintf('L = %.2g', L);
+sys_ss = ss(A,B,C,D);
+t = linspace(0,5,1000);
 
-    end
+%% Armature Current Plot
+figure; hold on
+for k = 1:numel(V_values)
+    V = V_values(k);
+    u = V * ones(size(t));
+    [y,~,x] = lsim(sys_ss,u,t);
+    i = x(:,1);
 
-    xlabel('Time (s)','FontWeight','bold')
-    ylabel('Speed (rad/s)','FontWeight','bold')
-    title(sprintf('R = %.2g', R))
-    legend(legendEntries,'Location','best')
-    grid on
-
-    % --- NEW: fix y-axis scale for 3rd subplot ---
-    if iR == 3
-    ylim([0 0.1])
-
-    end
-    
-    hold off
+    plot(t,i,'LineWidth',2,'color',colors(k,:))
 end
-sgtitle('DC Motor Step Responses: Effect of L for Different R Values')
+xlabel('Time (s)','FontWeight','bold')
+ylabel('Current i(t) (A)','FontWeight','bold')
+legend('1 V', '1.2 V','1.5 V','Location', 'best')
+title('Armature Current Response')
+grid on
+
+%% Motor Torque Plot
+figure; hold on
+for k = 1:numel(V_values)
+    V = V_values(k);
+    u = V * ones(size(t));
+    [y,~,x] = lsim(sys_ss,u,t);
+    i = x(:,1);
+    tau = Km .* i;
+
+    plot(t,tau,'LineWidth',2,'color',colors(k,:))
+end
+xlabel('Time (s)','FontWeight','bold')
+ylabel('Torque \tau(t) (N·m)','FontWeight','bold')
+legend('1 V', '1.2 V','1.5 V','Location', 'best')
+title('Motor Torque Response')
+grid on
+
+%% Phase-Plane Plot
+figure; hold on
+for k = 1:numel(V_values)
+    V = V_levels(k);
+    u = V * ones(size(t));
+    [y,~,x] = lsim(sys_ss,u,t);
+    i = x(:,1);
+    omega = x(:,2);
+
+    plot(i,omega,'LineWidth',2,'color',colors(k,:))
+end
+
+xlabel('Current i(t) (A)','FontWeight','bold')
+ylabel('Speed \omega(t) (rad/s)','FontWeight','bold')
+legend('1 V', '1.2 V','1.5 V','Location', 'best')
+title('Phase-Plane Plot')
+grid on
