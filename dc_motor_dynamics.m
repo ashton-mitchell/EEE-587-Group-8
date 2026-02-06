@@ -57,7 +57,7 @@ grid on
 %% Phase-Plane Plot
 figure; hold on
 for k = 1:numel(V_values)
-    V = V_levels(k);
+    V = V_values(k);
     u = V * ones(size(t));
     [y,~,x] = lsim(sys_ss,u,t);
     i = x(:,1);
